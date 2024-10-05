@@ -9,7 +9,7 @@ obj_p[:, :2] = np.mgrid[0:boardSize[0], 0:boardSize[1]].T.reshape(-1, 2) #3D to 
 imagePoints = []
 objectPoints = []
 
-cap = cv2.VideoCapture(1) #device
+cap = cv2.VideoCapture(1) #device, mac use 1
 found = 0
 while(True):
     c_ret, frame = cap.read()
@@ -30,12 +30,12 @@ while(True):
     
     cv2.imshow('frame', frame)
 
-    if cv2.waitKey(33) & 0xFF == ord("q"): #esc
+    if cv2.waitKey(33) & 0xFF == ord("q"):
         break
     
 cap.release()
 
-if len(imagePoints) >= 4:
+if found >= 4:
     imageSize = (frame.shape[1], frame.shape[0])
     #an extra None for OpenCV >= 3.0
     ret, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(objectPoints, imagePoints, imageSize, None, None)
