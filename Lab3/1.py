@@ -37,6 +37,7 @@ cap.release()
 
 if len(imagePoints) >= 4:
     imageSize = (frame.shape[1], frame.shape[0])
+    #an extra None for OpenCV >= 3.0
     ret, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(objectPoints, imagePoints, imageSize, None, None)
 
     f = cv2.FileStorage("1.xml", cv2.FILE_STORAGE_WRITE)
