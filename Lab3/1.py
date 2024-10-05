@@ -10,7 +10,7 @@ imagePoints = []
 objectPoints = []
 
 cap = cv2.VideoCapture(1) #device, mac use 1
-found = 0
+found = 1
 while(True):
     c_ret, frame = cap.read()
     if not c_ret:
