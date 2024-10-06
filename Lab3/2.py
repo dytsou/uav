@@ -3,34 +3,36 @@ import numpy as np
 
 def warp_perspective(image, M, output_size):
     width, height = output_size
-    output_image = np.zeros((height, width, 3), dtype=np.uint8)
+    y, x = np.indices((height, width))
+    homo_coords = np.stack([x, y, np.ones_like(x)], axis=-1) # [:, :, 0] = x, [:, :, 1] = y, [:, :, 2] = 1
     
     # Invert the matrix M to map the output coordinates back to the input coordinates
     M_inv = np.linalg.inv(M)
     
-    for y in range(height):
-        for x in range(width):
-            # Inverse transformation
-            source_coords = M_inv @ np.array([x, y, 1])
-            source_x = source_coords[0] / source_coords[2]
-            source_y = source_coords[1] / source_coords[2]
-            
-            # Check coordinates are in bounds
-            if 0 <= source_x < image.shape[1] and 0 <= source_y < image.shape[0]:
-                # Get pixel values using bilinear interpolation
-                output_image[y, x] = bilinear_interpolation(image, source_x, source_y)
+    src_coords = homo_coords @ M_inv.T
+    src_coords /= src_coords[:, :, 2:3]
+    src_x, src_y = src_coords[:, :, 0], src_coords[:, :, 1]
+    mask = (src_x >= 0) & (src_x < image.shape[1] - 1) & (src_y >= 0) & (src_y < image.shape[0] - 1)
+    
+    output_image = np.zeros((height, width, 3), dtype=np.uint8)
+    valid_y, valid_x = np.where(mask)
+    output_image[valid_y, valid_x] = bilinear_interpolation(image, src_x[mask], src_y[mask])
     
     return output_image
 
 def bilinear_interpolation(image, x, y):
-    x1, y1 = int(x), int(y)
-    x2, y2 = min(x1 + 1, image.shape[1] - 1), min(y1 + 1, image.shape[0] - 1)
+    x1, y1 = np.floor(x).astype(int), np.floor(y).astype(int)
+    x2, y2 = np.minimum(x1 + 1, image.shape[1] - 1), np.minimum(y1 + 1, image.shape[0] - 1)
     dx, dy = x - x1, y - y1
     
-    top = (1 - dx) * image[y1, x1] + dx * image[y1, x2]
-    bottom = (1 - dx) * image[y2, x1] + dx * image[y2, x2]
+    top_left = image[y1, x1]
+    top_right = image[y1, x2]
+    bottom_left = image[y2, x1]
+    bottom_right = image[y2, x2]
     
-    return (1 - dy) * top + dy * bottom
+    top = (1 - dx)[:, None] * top_left + dx[:, None] * top_right
+    bottom = (1 - dx)[:, None] * bottom_left + dx[:, None] * bottom_right
+    return ((1 - dy)[:, None] * top + dy[:, None] * bottom).astype(np.uint8)
 
 def transform(img):
     ref_points = np.array([[0, 0], [0, 1080], [1920, 1080], [1920, 0]], np.float32)
