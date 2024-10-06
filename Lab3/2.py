@@ -38,7 +38,7 @@ def transform(img):
     ref_points = np.array([[0, 0], [0, 1080], [1920, 1080], [1920, 0]], np.float32)
     new_points = np.array([[415, 868], [332, 1410], [1648, 1254], [1634, 220]], np.float32)
     m = cv2.getPerspectiveTransform(ref_points, new_points)
-    print(m)
+    # print(m)
     output = warp_perspective(img, m, (2634, 1888))
     # output = cv2.warpPerspective(img, m, (2634, 1888))
     return output
