@@ -55,37 +55,40 @@ def main():
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intrinsic, distorsion)
         # print(rvecs, tvecs)
         if rvecs is not None and tvecs is not None:
-            x, y, z = tvecs[0][0]
-            frame = cv2.aruco.drawAxis(frame, intrinsic, distorsion, rvecs, tvecs, 10)
-            frame = cv2.putText(frame, f"x: {x:.2f}, y: {y:.2f}, z: {z:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            for i in range(rvecs.shape[0]):
+                if markerIDs[i][0] == 2:
+                    x, y, z = tvecs[0][0]
+                    frame = cv2.aruco.drawAxis(frame, intrinsic, distorsion, rvecs, tvecs, 10)
+                    frame = cv2.putText(frame, f"x: {x:.2f}, y: {y:.2f}, z: {z:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                    z_update = tvecs[i, 0, 2] - 60
+                    y_update = tvecs[i, 0, 1]
+                    x_update = tvecs[i, 0, 0]
+                    rotM = np.zeros(3,3)
+                    cv2.Rodrigues(rvecs[i], rotM)
+                    yaw_update = np.arctan2(rotM[1, 0], rotM[0, 0])
+                    # print("org_z: ", str(z_update), "org_y: ", str(y_update), "org_x: ", str(x_update))
+                    z_update = z_pid.update(z_update, sleep=0)
+                    y_update = y_pid.update(y_update, sleep=0)
+                    x_update = x_pid.update(x_update, sleep=0)
+                    yaw_update = yaw_pid.update(yaw_update, sleep=0)
+                    # print("z_update: ", str(z_update), "y_update: ", str(y_update), "x_update: ", str(x_update))
+                    if z_update > MAX_SPEED:
+                        z_update = MAX_SPEED
+                    elif z_update < -MAX_SPEED:
+                        z_update = -MAX_SPEED
+                    if y_update > MAX_SPEED:
+                        y_update = MAX_SPEED
+                    elif y_update < -MAX_SPEED:
+                        y_update = -MAX_SPEED
+                    if x_update > MAX_SPEED:
+                        x_update = MAX_SPEED
+                    elif x_update < -MAX_SPEED:
+                        x_update = -MAX_SPEED
+                    if yaw_update > MAX_SPEED:
+                        yaw_update = MAX_SPEED
+                    elif yaw_update < -MAX_SPEED:
+                        yaw_update = -MAX_SPEED
             
-            z_update = tvecs[0, 0, 2] - 60
-            y_update = tvecs[0, 0, 1]
-            x_update = tvecs[0, 0, 0]
-            # yaw_update = cv2.Rodrigues
-            print("org_z: ", str(z_update), "org_y: ", str(y_update), "org_x: ", str(x_update))
-            z_update = z_pid.update(z_update, sleep=0)
-            y_update = y_pid.update(y_update, sleep=0)
-            x_update = x_pid.update(x_update, sleep=0)
-            # yaw_update = yaw_pid.update(yaw_update, sleep=0)
-            print("z_update: ", str(z_update), "y_update: ", str(y_update), "x_update: ", str(x_update))
-            if z_update > MAX_SPEED:
-                z_update = MAX_SPEED
-            elif z_update < -MAX_SPEED:
-                z_update = -MAX_SPEED
-            if y_update > MAX_SPEED:
-                y_update = MAX_SPEED
-            elif y_update < -MAX_SPEED:
-                y_update = -MAX_SPEED
-            if x_update > MAX_SPEED:
-                x_update = MAX_SPEED
-            elif x_update < -MAX_SPEED:
-                x_update = -MAX_SPEED
-            if yaw_update > MAX_SPEED:
-                yaw_update = MAX_SPEED
-            elif yaw_update < -MAX_SPEED:
-                yaw_update = -MAX_SPEED
-        
         cv2.imshow("drone", frame)
         
         key = cv2.waitKey(100)
