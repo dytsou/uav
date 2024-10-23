@@ -6,24 +6,38 @@ from djitellopy import Tello
 from pyimagesearch.pid import PID
 from keyboard_djitellopy import keyboard
 
+ID = 1
 MAX_SPEED = 60
 
 def marker_detection(frame, drone):
     return frame, drone
 
-def dodge_marker(drone, id, z):
-    print(id)
-    if id < 3 and z > 40:
-        Tello.move(drone, "forward", 20)
+def dodge_marker(drone, id, tvecs):
+    x, y, z = tvecs[0]
+    global ID
+    print([ID, id, tvecs[0]])
+    Z_BOUND = 60
+    if id == ID and (z > Z_BOUND or x > 10 or x < -10 or y < -10 or y > 10):
+        if y > 10:
+            Tello.move(drone, "down", 20)
+        elif y < -10:
+            Tello.move(drone, "up", 20)
+        elif x < -10:
+            Tello.move(drone, "left", 20)
+        elif x > 10:
+            Tello.move(drone, "right", 20)
+        elif z > Z_BOUND:
+            Tello.move(drone, "forward", max(20, (int)(z - 30)))
         print("C")
     elif id == 1:
-        Tello.move(drone, "right", 100)
+        Tello.move(drone, "right", 80)
         print("A")
-        cv2.waitKey(1500)
+        time.sleep(1)
+        ID = 2
     elif id == 2:
-        Tello.move(drone, "left", 100)
+        Tello.move(drone, "left", 60)
         print("B")
-        cv2.waitKey(1500)
+        time.sleep(1)
 
 
 def main():
@@ -32,10 +46,11 @@ def main():
     drone.connect()
     battery = drone.get_battery()
     print(f"Battery: {battery}%")
-    time.sleep(5)
+    time.sleep(1)
     drone.streamon()
     frame_read = drone.get_frame_read()
     
+    lasttvecs = None
     while True:
         frame = frame_read.frame
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -49,17 +64,24 @@ def main():
         distorsion = fs.getNode("distortion").mat()
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intrinsic, distorsion)
         # print(rvecs, tvecs)
-        
         if rvecs is not None and tvecs is not None:
-            for i in range(rvecs.shape[0]):
-                x, y, z = tvecs[0][0]
-                id = markerIDs[i][0]
-                if id is not None:
-                    dodge_marker(drone, id, z)
+            if drone.is_flying:
+                for i in range(rvecs.shape[0]):
+                    id = markerIDs[i][0]
+                    # print([ID, id, tvecs[i][0]])
+                    global ID
+                    if id == ID:
+                        x,y,z = tvecs[i][0]
+                        if lasttvecs is not None:
+                            lx, ly, lz = lasttvecs
+                        if id is not None:
+                            if lasttvecs is None or abs(x - lx) < 50 or abs(y - ly) < 50 or abs(z - lz) < 50:
+                                dodge_marker(drone, id, tvecs[i])
+                                lasttvecs = tvecs[i][0]
                 
         cv2.imshow("drone", frame)
         
-        key = cv2.waitKey(100)
+        key = cv2.waitKey(33)
         if key != -1:
             keyboard(drone, key)
         # print(key)
