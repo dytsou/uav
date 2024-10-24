@@ -6,8 +6,10 @@ from djitellopy import Tello
 from pyimagesearch.pid import PID
 from keyboard_djitellopy import keyboard
 
-ID = 1
+ID = 4
 MAX_SPEED = 60
+Z_BOUND = 60
+LAST_HEIGHT = -1
 
 def marker_detection(frame, drone):
     return frame, drone
@@ -15,36 +17,10 @@ def marker_detection(frame, drone):
 def dodge_marker(drone, id, tvecs):
     x, y, z = tvecs[0]
     global ID
+    global Z_BOUND
+    global LAST_HEIGHT
     print([ID, id, tvecs[0]])
-    Z_BOUND = 60
-    if id == ID and (z > Z_BOUND or x > 10 or x < -10 or y < -10 or y > 10):
-        if y > 10:
-            Tello.move(drone, "down", 20)
-        elif y < -10:
-            Tello.move(drone, "up", 20)
-        elif x < -10:
-            Tello.move(drone, "left", 20)
-        elif x > 10:
-            Tello.move(drone, "right", 20)
-        elif z > Z_BOUND:
-            Tello.move(drone, "forward", max(20, (int)(z - 30)))
-        print("C")
-    elif id == 1:
-        Tello.move(drone, "right", 80)
-        print("A")
-        time.sleep(1)
-        ID = 2
-    elif id == 2:
-        Tello.move(drone, "left", 60)
-        print("B")
-        time.sleep(1)
-        ID = 3
-    elif id == 3:
-        Tello.move(drone, "down", 40)
-        Tello.move(drone, "forward", 120)
-        Tello.move(drone, "up", 40)
-        ID = 0
-    elif id == 0:
+    if id == 0:
         frame_read = drone.get_frame_read()
         z_pid = PID(kP=0.7, kI=0.0001, kD=0.1)
         y_pid = PID(kP=0.7, kI=0.0001, kD=0.1)
@@ -63,8 +39,13 @@ def dodge_marker(drone, id, tvecs):
         while True:
             frame = frame_read.frame
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
-            parameters = cv2.aruco.DetectorParameters_create()
+
+            # for OpenCV >= 4.7
+            dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+            parameters = cv2.aruco.DetectorParameters()
+
+            # dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
+            # parameters = cv2.aruco.DetectorParameters_create()
             markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
             print(markerIDs)
             frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIDs)
@@ -77,7 +58,7 @@ def dodge_marker(drone, id, tvecs):
                 for i in range(rvecs.shape[0]):
                     if markerIDs[i][0] == ID:
                         x, y, z = tvecs[0][0]
-                        z_update = tvecs[i, 0, 2] - 60
+                        z_update = tvecs[i, 0, 2] - 40
                         y_update = -tvecs[i, 0, 1]
                         x_update = tvecs[i, 0, 0]
                         rotM = np.zeros((3,3))
@@ -106,7 +87,7 @@ def dodge_marker(drone, id, tvecs):
                             yaw_update = MAX_SPEED
                         elif yaw_update < -MAX_SPEED:
                             yaw_update = -MAX_SPEED
-                    elif markerIDs[i][0] == 4:
+                    elif len(markerIDs)==1 and markerIDs[i][0] == 4:
                         ID = 4
                         break
             else:
@@ -121,22 +102,62 @@ def dodge_marker(drone, id, tvecs):
             if key != -1:
                 keyboard(drone, key)
             else:
-                drone.send_rc_control(int(x_update) * 1, int(z_update) // 1, int(y_update) * 1, int(yaw_update) * (-10))
+                drone.send_rc_control(int(x_update) * 1, int(z_update) // 1, int(y_update) * 2, int(yaw_update) * (-20))
             # print(key)
+    elif id == ID and id!=0 and (z > Z_BOUND or x > 10 or x < -10 or y < -10 or y > 10):
+        if y > 10:
+            Tello.move(drone, "down", 20)
+        elif y < -10:
+            Tello.move(drone, "up", 20)
+        elif x < -10:
+            Tello.move(drone, "left", 20)
+        elif x > 10:
+            Tello.move(drone, "right", 20)
+        elif z > Z_BOUND:
+            Tello.move(drone, "forward", max(20, (int)(z - Z_BOUND)))
+        print("C")
+    elif id == 1:
+        Tello.move(drone, "right", 80)
+        print("A")
+        time.sleep(1)
+        ID = 2
+    elif id == 2:
+        Tello.move(drone, "left", 70)
+        Tello.move(drone, "forward", 100)
+        print("B")
+        time.sleep(1)
+        ID = 3
+    elif id == 3:
+        Tello.move(drone, "down", 40)
+        Tello.move(drone, "forward", 150)
+        Tello.move(drone, "up", 40)
+        time.sleep(1)
+        ID = 0
 
     elif id == 4:
-        print("ID 4 detected. Stop tracking.")
-        move_to_relative_position(drone, tvecs[i][0], TARGET_DISTANCE)
-        drone.rotate_clockwise(90)  # 向右轉 90 度
+        print("id 4")
+        Tello.rotate_clockwise(drone, 90)
+        Z_BOUND = 30
+        ID = 5
 
     elif id == 5:
-        print("ID 5 detected.")
-        move_to_relative_position(drone, tvecs[i][0], TARGET_DISTANCE_ID5)
+        # Tello.move(drone, "left", 150)
+        drone.send_rc_control(-20, 0, 0, 0)
+        ID = 6
 
     elif id == 6:
-        print("ID 6 detected. Stop and land.")
-        drone.land()  # 降落
-        return
+        Z_BOUND = 500
+        drone.send_rc_control(0, -20, 0, 0)
+        print("back")
+        while True:
+            print(f"height %d, last-heigth %d", drone.get_distance_tof(), LAST_HEIGHT)
+            if LAST_HEIGHT == -1:
+                LAST_HEIGHT = drone.get_distance_tof()
+            elif LAST_HEIGHT - drone.get_distance_tof() > 40:
+                print("land")
+                drone.land()
+                break
+            return
 
 
 def main():
@@ -153,8 +174,13 @@ def main():
     while True:
         frame = frame_read.frame
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
-        parameters = cv2.aruco.DetectorParameters_create()
+
+        # for OpenCV >= 4.7
+        dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+        parameters = cv2.aruco.DetectorParameters()
+
+        # dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
+        # parameters = cv2.aruco.DetectorParameters_create()
         markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
         # print(markerIDs)
         frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIDs)
@@ -163,12 +189,13 @@ def main():
         distorsion = fs.getNode("distortion").mat()
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intrinsic, distorsion)
         # print(rvecs, tvecs)
+
         if rvecs is not None and tvecs is not None:
             if drone.is_flying:
                 for i in range(rvecs.shape[0]):
                     id = markerIDs[i][0]
-                    # print([ID, id, tvecs[i][0]])
                     global ID
+                    # print([ID, id, tvecs[i][0]])
                     if id == ID:
                         x,y,z = tvecs[i][0]
                         if lasttvecs is not None:
@@ -189,4 +216,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
