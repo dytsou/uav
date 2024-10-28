@@ -107,7 +107,7 @@ def dodge_marker(drone, id, tvecs):
             if key != -1:
                 keyboard(drone, key)
             else:
-                drone.send_rc_control(int(x_update) * 1, int(z_update) // 1, 0, int(yaw_update) * (-20))
+                drone.send_rc_control(int(x_update) * 1, int(z_update) // 1, 0, int(yaw_update) * (-40))
             # print(key)
     elif id == ID and ID !=0 and (z > Z_BOUND or x > 10 or x < -10 or y < -10 or y > 10):
         if y > 10:
