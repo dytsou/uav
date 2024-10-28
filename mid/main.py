@@ -6,7 +6,7 @@ from djitellopy import Tello
 from pyimagesearch.pid import PID
 from keyboard_djitellopy import keyboard
 
-ID = 4
+ID = 0
 MAX_SPEED = 60
 Z_BOUND = 60
 LAST_HEIGHT = -1
@@ -37,6 +37,7 @@ def dodge_marker(drone, id, tvecs):
         x_update = 0
         yaw_update = 0
         while True:
+            break_flag = False
             frame = frame_read.frame
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -88,7 +89,7 @@ def dodge_marker(drone, id, tvecs):
                         elif yaw_update < -MAX_SPEED:
                             yaw_update = -MAX_SPEED
                     elif len(markerIDs)==1 and markerIDs[i][0] == 4:
-                        ID = 4
+                        break_flag = True
                         break
             else:
                 z_update = 0
@@ -99,12 +100,16 @@ def dodge_marker(drone, id, tvecs):
             cv2.imshow("drone", frame)
             
             key = cv2.waitKey(100)
+            if break_flag:
+                ID = 4
+                break
+
             if key != -1:
                 keyboard(drone, key)
             else:
-                drone.send_rc_control(int(x_update) * 1, int(z_update) // 1, int(y_update) * 2, int(yaw_update) * (-20))
+                drone.send_rc_control(int(x_update) * 1, int(z_update) // 1, 0, int(yaw_update) * (-20))
             # print(key)
-    elif id == ID and id!=0 and (z > Z_BOUND or x > 10 or x < -10 or y < -10 or y > 10):
+    elif id == ID and ID !=0 and (z > Z_BOUND or x > 10 or x < -10 or y < -10 or y > 10):
         if y > 10:
             Tello.move(drone, "down", 20)
         elif y < -10:
@@ -130,34 +135,45 @@ def dodge_marker(drone, id, tvecs):
     elif id == 3:
         Tello.move(drone, "down", 40)
         Tello.move(drone, "forward", 150)
-        Tello.move(drone, "up", 40)
+        Tello.move(drone, "up", 80)
         time.sleep(1)
         ID = 0
 
     elif id == 4:
         print("id 4")
         Tello.rotate_clockwise(drone, 90)
-        Z_BOUND = 30
+        # Z_BOUND = 45
         ID = 5
 
     elif id == 5:
         # Tello.move(drone, "left", 150)
-        drone.send_rc_control(-20, 0, 0, 0)
+        drone.send_rc_control(-25, -5, 0, 0)
         ID = 6
 
     elif id == 6:
-        Z_BOUND = 500
+        Z_BOUND = 110
         drone.send_rc_control(0, -20, 0, 0)
         print("back")
-        while True:
-            print(f"height %d, last-heigth %d", drone.get_distance_tof(), LAST_HEIGHT)
-            if LAST_HEIGHT == -1:
-                LAST_HEIGHT = drone.get_distance_tof()
-            elif LAST_HEIGHT - drone.get_distance_tof() > 40:
-                print("land")
-                drone.land()
-                break
-            return
+        print(f"height %d, last-heigth %d", drone.get_distance_tof(), LAST_HEIGHT)
+        if LAST_HEIGHT == -1:
+            LAST_HEIGHT = drone.get_distance_tof()
+
+        if LAST_HEIGHT - drone.get_distance_tof() > 40:
+            print("land")
+            drone.send_rc_control(0, 0, 0, 0)
+            time.sleep(1)
+            drone.land()
+        elif y > 10:
+            Tello.move(drone, "down", 20)
+        elif y < -10:
+            Tello.move(drone, "up", 20)
+        elif x < -8:
+            Tello.move(drone, "left", 20)
+        elif x > 15:
+            Tello.move(drone, "right", 20)
+        elif z < Z_BOUND: 
+            Tello.move(drone, "back", 20)
+        return
 
 
 def main():
