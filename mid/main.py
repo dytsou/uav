@@ -6,7 +6,7 @@ from djitellopy import Tello
 from pyimagesearch.pid import PID
 from keyboard_djitellopy import keyboard
 
-ID = 0
+ID = 1
 MAX_SPEED = 60
 Z_BOUND = 60
 LAST_HEIGHT = -1
@@ -147,7 +147,7 @@ def dodge_marker(drone, id, tvecs):
 
     elif id == 5:
         # Tello.move(drone, "left", 150)
-        drone.send_rc_control(-25, -5, 0, 0)
+        drone.send_rc_control(-20, -6, 0, 0)
         ID = 6
 
     elif id == 6:
@@ -212,6 +212,9 @@ def main():
                     id = markerIDs[i][0]
                     global ID
                     # print([ID, id, tvecs[i][0]])
+                    print("ID", ID)
+                    if id == 0:
+                        ID=0
                     if id == ID:
                         x,y,z = tvecs[i][0]
                         if lasttvecs is not None:
