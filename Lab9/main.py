@@ -93,77 +93,82 @@ def main():
     yaw_update = 0
 
     break_flag = False
-
+    angle = 90
     while True:
         frame = frame_read.frame
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if break_flag == False:
+            dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+            parameters = cv2.aruco.DetectorParameters()
+            # dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
+            # parameters = cv2.aruco.DetectorParameters()
+            markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
+            print(markerIDs)
+            frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIDs)
+            fs = cv2.FileStorage("1.xml", cv2.FILE_STORAGE_READ)
+            intrinsic = fs.getNode("instrinsic").mat()
+            distorsion = fs.getNode("distortion").mat()
+            rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intrinsic, distorsion)
+            # print(rvecs, tvecs)
+            if rvecs is not None and tvecs is not None:
+                for i in range(rvecs.shape[0]):
+                    if markerIDs[i][0] == 1:
+                        x, y, z = tvecs[0][0]
+                        z_update = tvecs[i, 0, 2] - 40
+                        y_update = -tvecs[i, 0, 1]
+                        x_update = tvecs[i, 0, 0]
+                        rotM = np.zeros((3,3))
+                        cv2.Rodrigues(rvecs[i], rotM)
+                        z_prime = np.matmul(rotM, np.array([0,0,1]))
+                        yaw_update = math.atan2(z - z_prime[2], x - z_prime[0])
+                        # print("org_z: ", str(z_update), "org_y: ", str(y_update), "org_x: ", str(x_update))
+                        z_update = z_pid.update(z_update, sleep=0)
+                        y_update = y_pid.update(y_update, sleep=0)
+                        x_update = x_pid.update(x_update, sleep=0)
+                        yaw_update = yaw_pid.update(yaw_update, sleep=0)
+                        print("z_update: ", str(z_update), "y_update: ", str(y_update), "x_update: ", str(x_update), "yaw_update: ", str(yaw_update))
+                        if z_update > MAX_SPEED:
+                            z_update = MAX_SPEED
+                        elif z_update < -MAX_SPEED:
+                            z_update = -MAX_SPEED
+                        if y_update > MAX_SPEED:
+                            y_update = MAX_SPEED
+                        elif y_update < -MAX_SPEED:
+                            y_update = -MAX_SPEED
+                        if x_update > MAX_SPEED:
+                            x_update = MAX_SPEED
+                        elif x_update < -MAX_SPEED:
+                            x_update = -MAX_SPEED
+                        if yaw_update > MAX_SPEED:
+                            yaw_update = MAX_SPEED
+                        elif yaw_update < -MAX_SPEED:
+                            yaw_update = -MAX_SPEED
 
-        dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
-        parameters = cv2.aruco.DetectorParameters()
-        # dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
-        # parameters = cv2.aruco.DetectorParameters()
-        markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
-        print(markerIDs)
-        frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIDs)
-        fs = cv2.FileStorage("1.xml", cv2.FILE_STORAGE_READ)
-        intrinsic = fs.getNode("instrinsic").mat()
-        distorsion = fs.getNode("distortion").mat()
-        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intrinsic, distorsion)
-        # print(rvecs, tvecs)
-        if rvecs is not None and tvecs is not None:
-            for i in range(rvecs.shape[0]):
-                if markerIDs[i][0] == 1:
-                    x, y, z = tvecs[0][0]
-                    z_update = tvecs[i, 0, 2] - 40
-                    y_update = -tvecs[i, 0, 1]
-                    x_update = tvecs[i, 0, 0]
-                    rotM = np.zeros((3,3))
-                    cv2.Rodrigues(rvecs[i], rotM)
-                    z_prime = np.matmul(rotM, np.array([0,0,1]))
-                    yaw_update = math.atan2(z - z_prime[2], x - z_prime[0])
-                    # print("org_z: ", str(z_update), "org_y: ", str(y_update), "org_x: ", str(x_update))
-                    z_update = z_pid.update(z_update, sleep=0)
-                    y_update = y_pid.update(y_update, sleep=0)
-                    x_update = x_pid.update(x_update, sleep=0)
-                    yaw_update = yaw_pid.update(yaw_update, sleep=0)
-                    print("z_update: ", str(z_update), "y_update: ", str(y_update), "x_update: ", str(x_update), "yaw_update: ", str(yaw_update))
-                    if z_update > MAX_SPEED:
-                        z_update = MAX_SPEED
-                    elif z_update < -MAX_SPEED:
-                        z_update = -MAX_SPEED
-                    if y_update > MAX_SPEED:
-                        y_update = MAX_SPEED
-                    elif y_update < -MAX_SPEED:
-                        y_update = -MAX_SPEED
-                    if x_update > MAX_SPEED:
-                        x_update = MAX_SPEED
-                    elif x_update < -MAX_SPEED:
-                        x_update = -MAX_SPEED
-                    if yaw_update > MAX_SPEED:
-                        yaw_update = MAX_SPEED
-                    elif yaw_update < -MAX_SPEED:
-                        yaw_update = -MAX_SPEED
-
-                    print("xyz: ", x, y, z)
-                    if(abs(y)<=10 and abs(z-45)<=15):      
-                        break_flag = True
-                        print("Break!")
+                        print("xyz: ", x, y, z)
+                        if(abs(y)<=10 and abs(z-45)<=15):      
+                            break_flag = True
+                            print("Break!")
+            else:
+                z_update = 0
+                y_update = 0
+                x_update = 0
+                yaw_update = 0 
+            cv2.imshow("drone", frame)
+            key = cv2.waitKey(100)
+            if key != -1:
+                keyboard(drone, key)
+            else:
+                drone.send_rc_control(int(x_update) // 1, int(z_update) // 2, int(y_update) // 2, int(yaw_update) * (-1))
         else:
-            z_update = 0
-            y_update = 0
-            x_update = 0
-            yaw_update = 0
-        
-        cv2.imshow("drone", frame)
-        
-        key = cv2.waitKey(100)
-        if key != -1:
-            keyboard(drone, key)
-        else:
-            drone.send_rc_control(int(x_update) // 1, int(z_update) // 2, int(y_update) // 2, int(yaw_update) * (-1))
-
-        if break_flag: break
-    print("Fin")
+            cv2.imshow("drone", frame)
+            key = cv2.waitKey(100)
+            if key != -1:
+                keyboard(drone, key)
+            else:
+                frame = rotate(frame, angle) 
+                drone = movement(frame, drone, yaw_update)   
+s
+                    
     #cv2.destroyAllWindows()
 
 if __name__ == '__main__':
