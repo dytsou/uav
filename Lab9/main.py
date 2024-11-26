@@ -12,6 +12,8 @@ def movement(frame, drone, angle):
     # [0] [1] [2]
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     _, frame = cv2.threshold(frame, 100, 255, cv2.THRESH_BINARY)
+    kernel = np.ones((10,10), np.uint8)
+    frame = cv2.erode(frame, kernel, iterations=2)
     left = frame[:, :frame.shape[1]//3]
     center = frame[:, frame.shape[1]//3: 2 * frame.shape[1]//3]
     right = frame[:, 2*frame.shape[1]//3:]
@@ -20,10 +22,11 @@ def movement(frame, drone, angle):
     right = cv2.countNonZero(right)
     print(left, center, right)
     blocksize = (frame.shape[1]//3 * frame.shape[0])
-    tmp = blocksize // 10
+    tmp = blocksize * 0.7
     block_left = left > tmp
     block_center = center > tmp 
     block_right = right > tmp
+    print(tmp, block_left, block_center, block_right)
     x = 0
     y = 0
     if not block_left and block_center and not block_right:
@@ -42,13 +45,13 @@ def movement(frame, drone, angle):
         # slight left
         angle = (angle - 5) % 360
     else:
-        Tello.send_rc_control(0, 0, 0, 0)
-        return drone
+        drone.send_rc_control(0, 0, 0, 0)
+        return frame, drone, angle
     
     x = x + np.cos(angle * np.pi / 180)
-    y = x + np.sin(angle * np.pi / 180)
-    Tello.send_rc_control(int(x * 30), 0, int(y * 30), 0)
-    return drone
+    y = y + np.sin(angle * np.pi / 180)
+    drone.send_rc_control(int(x * 5), 0, int(y * 5), 0)
+    return frame, drone, angle
 
 def rotate(frame, angle):
     image = frame  # 替換成你的圖片路徑
@@ -105,7 +108,7 @@ def main():
             markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
             print(markerIDs)
             frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIDs)
-            fs = cv2.FileStorage("1.xml", cv2.FILE_STORAGE_READ)
+            fs = cv2.FileStorage("drone.xml", cv2.FILE_STORAGE_READ)
             intrinsic = fs.getNode("instrinsic").mat()
             distorsion = fs.getNode("distortion").mat()
             rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intrinsic, distorsion)
@@ -145,7 +148,8 @@ def main():
                             yaw_update = -MAX_SPEED
 
                         print("xyz: ", x, y, z)
-                        if(abs(y)<=10 and abs(z-45)<=15):      
+                        if(abs(y)<=10 and abs(z-45)<=15): 
+                            Tello.move(drone, "right", 20)
                             break_flag = True
                             print("Break!")
             else:
@@ -158,16 +162,18 @@ def main():
             if key != -1:
                 keyboard(drone, key)
             else:
-                drone.send_rc_control(int(x_update) // 1, int(z_update) // 2, int(y_update) // 2, int(yaw_update) * (-1))
+                drone.send_rc_control(int(x_update) // 5, int(z_update) // 2, int(y_update) // 2, int(yaw_update) * (-1))
         else:
-            cv2.imshow("drone", frame)
             key = cv2.waitKey(100)
             if key != -1:
                 keyboard(drone, key)
             else:
+                print("angle(before):", angle)
                 frame = rotate(frame, angle) 
-                drone = movement(frame, drone, yaw_update)   
-s
+                frame, drone, angle = movement(frame, drone, yaw_update)   
+                print("angle:", angle)
+            cv2.imshow("drone", frame)
+
                     
     #cv2.destroyAllWindows()
 
