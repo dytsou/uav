@@ -8,10 +8,64 @@ from keyboard_djitellopy import keyboard
 
 MAX_SPEED = 60
 
-def marker_detection(frame, drone):
+def movement(frame, drone, angle):
+    # [0] [1] [2]
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, frame = cv2.threshold(frame, 100, 255, cv2.THRESH_BINARY)
+    left = frame[:, :frame.shape[1]//3]
+    center = frame[:, frame.shape[1]//3: 2 * frame.shape[1]//3]
+    right = frame[:, 2*frame.shape[1]//3:]
+    left = cv2.countNonZero(left)
+    center = cv2.countNonZero(center)
+    right = cv2.countNonZero(right)
+    print(left, center, right)
+    blocksize = (frame.shape[1]//3 * frame.shape[0])
+    tmp = blocksize // 10
+    block_left = left > tmp
+    block_center = center > tmp 
+    block_right = right > tmp
+    x = 0
+    y = 0
+    if not block_left and block_center and not block_right:
+        # go forward
+        angle = angle
+    elif not block_left and not block_center and block_right:
+        # go right
+        angle = (angle + 10) % 360
+    elif block_left and not block_center and not block_right:
+        # go left
+        angle = (angle - 10) % 360
+    elif not block_left and block_center and block_right:
+        # slight right
+        angle = (angle + 5) % 360
+    elif block_left and block_center and not block_right:
+        # slight left
+        angle = (angle - 5) % 360
+    else:
+        Tello.send_rc_control(0, 0, 0, 0)
+        return drone
     
-     
-    return frame, drone
+    x = x + np.cos(angle * np.pi / 180)
+    y = x + np.sin(angle * np.pi / 180)
+    Tello.send_rc_control(int(x * 30), 0, int(y * 30), 0)
+    return drone
+
+def rotate(frame, angle):
+    image = frame  # 替換成你的圖片路徑
+    (h, w) = image.shape[:2]  # 取得圖像的高度與寬度
+
+    # 設定旋轉中心、角度和縮放比例
+    center = (w // 2, h // 2)  # 以圖像中心為旋轉點
+    scale = 1.0  # 不縮放
+
+    # 計算旋轉矩陣
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, scale)
+
+    # 進行仿射變換
+    rotated_image = cv2.warpAffine(image, rotation_matrix, (w, h))
+    
+    return rotated_image
+
 
 def main():
     # Tello
@@ -99,7 +153,7 @@ def main():
             y_update = 0
             x_update = 0
             yaw_update = 0
-            
+        
         cv2.imshow("drone", frame)
         
         key = cv2.waitKey(100)
