@@ -37,11 +37,17 @@ def main():
     y_update = 0
     x_update = 0
     yaw_update = 0
+
+    break_flag = False
+
     while True:
         frame = frame_read.frame
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
+
+        dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
         parameters = cv2.aruco.DetectorParameters()
+        # dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
+        # parameters = cv2.aruco.DetectorParameters()
         markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
         print(markerIDs)
         frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIDs)
@@ -52,7 +58,7 @@ def main():
         # print(rvecs, tvecs)
         if rvecs is not None and tvecs is not None:
             for i in range(rvecs.shape[0]):
-                if markerIDs[i][0] == 0:
+                if markerIDs[i][0] == 1:
                     x, y, z = tvecs[0][0]
                     z_update = tvecs[i, 0, 2] - 40
                     y_update = -tvecs[i, 0, 1]
@@ -83,6 +89,11 @@ def main():
                         yaw_update = MAX_SPEED
                     elif yaw_update < -MAX_SPEED:
                         yaw_update = -MAX_SPEED
+
+                    print("xyz: ", x, y, z)
+                    if(abs(y)<=10 and abs(z-45)<=15):      
+                        break_flag = True
+                        print("Break!")
         else:
             z_update = 0
             y_update = 0
@@ -95,9 +106,10 @@ def main():
         if key != -1:
             keyboard(drone, key)
         else:
-            drone.send_rc_control(int(x_update) * 1, int(z_update) // 1, int(y_update) * 1, int(yaw_update) * (-10))
-        # print(key)
-    
+            drone.send_rc_control(int(x_update) // 1, int(z_update) // 2, int(y_update) // 2, int(yaw_update) * (-1))
+
+        if break_flag: break
+    print("Fin")
     #cv2.destroyAllWindows()
 
 if __name__ == '__main__':
