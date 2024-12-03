@@ -8,34 +8,13 @@ from keyboard_djitellopy import keyboard
 
 MAX_SPEED = 60
 cell_width = 5
-# forward_movement = np.array([5, 0, 0, 0])
-left_movement = np.array([0, 0, -5, 0])
-right_movement = np.array([0, 0, 5, 0])
 
-def setMovement(angle):
-    global forward_movement, left_movement, right_movement
-    if angle <= 45 or angle > 315:
-        # forward_movement = np.array([0, 0, -5, 0])
-        left_movement = np.array([-5, 0, 0, 0])
-        right_movement = np.array([5, 0, 0, 0])
-
-    elif angle > 45 and angle <= 135:
-        # forward_movement = np.array([5, 0, 0, 0])
-        left_movement = np.array([0, 0, -5, 0])
-        right_movement = np.array([0, 0, 5, 0])
-
-    elif angle > 135 and angle <= 225:
-        # forward_movement = np.array([0, 0, 5, 0])
-        left_movement = np.array([5, 0, 0, 0])
-        right_movement = np.array([-5, 0, 0, 0])
-
-    else:
-        # forward_movement = np.array([-5, 0, 0, 0])
-        left_movement = np.array([0, 0, 5, 0])
-        right_movement = np.array([0, 0, -5, 0])
+up_movement = [0, 0, -15, 0]
+left_movement = [-15, 0, 0, 0]
+right_movement = [15, 0, 0, 0]
+down_movement = [0, 0, 15, 0]
 
 def movement(frame, drone, angle):
-    setMovement(angle)
     # [0] [1] [2]
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     _, frame = cv2.threshold(frame, 50, 255, cv2.THRESH_BINARY)
@@ -57,9 +36,6 @@ def movement(frame, drone, angle):
     right_frame = cv2.countNonZero(right_frame)
     down_frame = cv2.countNonZero(down_frame)
 
-    # print("{:^{5}}", "{up_frame:^{5}}","\n",
-    #       "{left_frame:^{5}}", "{mid_frame:^{5}}", "{right_frame:^{5}}\n",
-    #       "{:^{5}}", "{down_frame:^{5}}", "\n")
     print(up_frame,"\n", left_frame, mid_frame, right_frame, "\n", down_frame, "\n")
     
     blocksize = (frame.shape[1]//3 * frame.shape[0]//3)
@@ -73,34 +49,58 @@ def movement(frame, drone, angle):
     x = 0
     y = 0
 
-    if not mid:
-        if left:
-            #move right
-            drone.send_rc_control(*right_movement)
-        elif right:
-            #move left
-            drone.send_rc_control(*left_movement)
-        else:
-            print("Where is black line\n")
-        return frame, drone, angle
-    
-    else:
-        if up:
-            #no need to do 
-            angle = angle
-        elif right:
-            #turn right
-            print("trun right\n")
-            angle = (angle+90)%360
-        elif left:
-            #turn left
-            angle = (angle-90)%360
-        else:
-            print("At the end of line\n")
+    if (angle <= 45 or angle > 315) or (angle > 135 and angle <= 225):
+        if not mid:
+            if right:
+                #move right
+                drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
+            elif left:
+                #move left
+                drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
+            else:
+                print("Where is black line\n")
         
-    x = x + np.cos(angle * np.pi / 180)
-    y = y + np.sin(angle * np.pi / 180)
-    drone.send_rc_control(int(x * 5), 0, int(y * 5), 0)
+        else:
+            if (angle <= 45 or angle > 315) and up:
+                drone.send_rc_control(up_movement[0], up_movement[1], up_movement[2], up_movement[3])
+            elif angle > 135 and angle <= 225 and down:
+                drone.send_rc_control(down_movement[0], down_movement[1], down_movement[2], down_movement[3])
+            elif right:
+                #turn right
+                angle = 90
+            elif left:
+                #turn left
+                angle = 270
+            else:
+                print("At the end of line\n")
+
+    else:
+        if not mid:
+            if up:
+                #move up
+                drone.send_rc_control(up_movement[0], up_movement[1], up_movement[2], up_movement[3])
+            elif down:
+                #move down
+                drone.send_rc_control(down_movement[0], down_movement[1], down_movement[2], down_movement[3])
+            else:
+                print("Where is black line\n")
+        
+        else:
+            if angle>45 and angle <= 135 and right:
+                #move right
+                drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
+            elif angle > 225 and angle <= 315 and left: 
+                #move left
+                drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
+            elif up:
+                #turn up
+                angle = 0
+            elif down:
+                #turn down
+                angle = 180
+            else:
+                print("At the end of line\n")
+        
     return frame, drone, angle
 
 def rotate(frame, angle):
@@ -126,7 +126,6 @@ def main():
     drone.connect()
     battery = drone.get_battery()
     print(f"Battery: {battery}%")
-    time.sleep(5)
     drone.streamon()
     frame_read = drone.get_frame_read()
     
@@ -198,7 +197,7 @@ def main():
                             yaw_update = -MAX_SPEED
 
                         print("xyz: ", x, y, z)
-                        if(abs(x-10)<=10 and abs(y)<=10 and z<=60): 
+                        if(abs(x+10)<=10 and abs(y)<=10 and z<=70): 
                             Tello.move(drone, "right", 20)
                             break_flag = True
                             print("Break!")
@@ -212,14 +211,14 @@ def main():
             if key != -1:
                 keyboard(drone, key)
             else:
-                drone.send_rc_control(int(x_update) // 5, int(z_update) // 2, int(y_update) // 2, int(yaw_update) * (-1))
+                drone.send_rc_control(int(x_update) // 1, int(z_update) // 2, int(y_update) // 1, int(yaw_update) * (-1))
         else:
             key = cv2.waitKey(100)
             if key != -1:
                 keyboard(drone, key)
             else:
                 print("angle(before):", angle)
-                frame = rotate(frame, angle) 
+                # frame = rotate(frame, angle) 
                 frame, drone, angle = movement(frame, drone, angle)   
                 print("angle:", angle)
             cv2.imshow("drone", frame)
