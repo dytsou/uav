@@ -219,7 +219,7 @@ def main():
                 keyboard(drone, key)
             else:
                 print("angle(before):", angle)
-                # frame = rotate(frame, angle) 
+                frame = rotate(frame, angle) 
                 frame, drone, angle = movement(frame, drone, angle)   
                 print("angle:", angle)
             cv2.imshow("drone", frame)
