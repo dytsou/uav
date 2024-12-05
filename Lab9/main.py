@@ -9,15 +9,15 @@ from keyboard_djitellopy import keyboard
 MAX_SPEED = 60
 cell_width = 5
 
-up_movement = [0, 0, -15, 0]
-left_movement = [-15, 0, 0, 0]
-right_movement = [15, 0, 0, 0]
-down_movement = [0, 0, 15, 0]
+up_movement = [0, 0, 15, 0]
+left_movement = [-7, 0, 0, 0]
+right_movement = [7, 0, 0, 0]
+down_movement = [0, 0, -15, 0]
 
 def movement(frame, drone, angle):
     # [0] [1] [2]
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    _, frame = cv2.threshold(frame, 50, 255, cv2.THRESH_BINARY)
+    _, frame = cv2.threshold(frame, 35, 255, cv2.THRESH_BINARY)
     kernel = np.ones((2,2), np.uint8)
     frame = cv2.erode(frame, kernel, iterations=15)
 
@@ -36,16 +36,17 @@ def movement(frame, drone, angle):
     right_frame = cv2.countNonZero(right_frame)
     down_frame = cv2.countNonZero(down_frame)
 
-    print(up_frame,"\n", left_frame, mid_frame, right_frame, "\n", down_frame, "\n")
+    print("      ", up_frame,"\n", left_frame, mid_frame, right_frame, "\n", "     ", down_frame, "\n")
     
     blocksize = (frame.shape[1]//3 * frame.shape[0]//3)
-    tmp = blocksize * 0.7
-    up = up_frame > tmp
-    left = left_frame > tmp 
-    mid = mid_frame > tmp
-    right = right_frame > tmp 
-    down = down_frame > tmp
-    print(up,"\n", left, mid, right, "\n", down, end="\n")
+    # tmp = blocksize * 0.7
+    tmp = 65000
+    up = up_frame < tmp
+    left = left_frame < tmp 
+    mid = mid_frame < tmp
+    right = right_frame < tmp 
+    down = down_frame < tmp
+    print("      ", up,"\n", left, mid, right, "\n", "     ", down, end="\n")
     x = 0
     y = 0
 
@@ -146,12 +147,13 @@ def main():
 
     break_flag = False
     angle = 90
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+    parameters = cv2.aruco.DetectorParameters()
     while True:
         frame = frame_read.frame
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if break_flag == False:
-            dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
-            parameters = cv2.aruco.DetectorParameters()
+        # if False:
             # dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
             # parameters = cv2.aruco.DetectorParameters()
             markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
@@ -166,7 +168,7 @@ def main():
                 for i in range(rvecs.shape[0]):
                     if markerIDs[i][0] == 2:
                         x, y, z = tvecs[0][0]
-                        z_update = tvecs[i, 0, 2] - 40
+                        z_update = tvecs[i, 0, 2] - 60
                         y_update = -tvecs[i, 0, 1]
                         x_update = tvecs[i, 0, 0]
                         rotM = np.zeros((3,3))
@@ -197,7 +199,9 @@ def main():
                             yaw_update = -MAX_SPEED
 
                         print("xyz: ", x, y, z)
-                        if(abs(x+10)<=10 and abs(y)<=10 and z<=70): 
+                        if(abs(x)<=10 and abs(y)<=10 and abs(z-60)<=5): 
+                            drone.send_rc_control(0, 0, 0, 0)
+                            time.sleep(1)
                             Tello.move(drone, "right", 20)
                             break_flag = True
                             print("Break!")
@@ -211,9 +215,12 @@ def main():
             if key != -1:
                 keyboard(drone, key)
             else:
-                drone.send_rc_control(int(x_update) // 1, int(z_update) // 2, int(y_update) // 1, int(yaw_update) * (-1))
+                drone.send_rc_control(int(x_update) // 1, int(z_update) // 2, int(y_update) // 1, 0)
         else:
             key = cv2.waitKey(100)
+            markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
+            if(markerIDs is not None and angle==180 and markerIDs[0][0]==2):
+                drone.land()
             if key != -1:
                 keyboard(drone, key)
             else:
