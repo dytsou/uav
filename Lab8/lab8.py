@@ -3,6 +3,10 @@ from numpy import random
 import cv2
 import torch
 from torchvision import transforms
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), 'yolov7-main'))
 
 from models.experimental import attempt_load
 from utils.datasets import letterbox

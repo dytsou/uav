@@ -158,8 +158,6 @@ def main():
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if break_flag == False:
         # if False:
-            # dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_250)
-            # parameters = cv2.aruco.DetectorParameters()
             markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
             print(markerIDs)
             frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIDs)

@@ -6,8 +6,7 @@ from djitellopy import Tello
 from pyimagesearch.pid import PID
 from keyboard_djitellopy import keyboard
 from face_detection import face_detection
-from dectectDoll import detectDoll
-
+from final.detectDoll import detectDoll
 
 def level1(drone, frame_read):
     # 起飛，看人臉往上往前往下，看人臉往下往前往上
@@ -43,6 +42,7 @@ def level1(drone, frame_read):
             break
         
         cv2.imshow("drone", frame)
+
 def level2(drone, frame_read):
     # 識別娃娃，回傳決定追線二不同階段
     # todo:放入lab8的東東
