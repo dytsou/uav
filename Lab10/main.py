@@ -17,7 +17,7 @@ down_movement = [0, 0, -15, 0]
 def movement(frame, drone, angle):
     # [0] [1] [2]
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    _, frame = cv2.threshold(frame, 35, 255, cv2.THRESH_BINARY)
+    _, frame = cv2.threshold(frame, 30, 255, cv2.THRESH_BINARY)
     kernel = np.ones((2,2), np.uint8)
     frame = cv2.erode(frame, kernel, iterations=15)
 
@@ -62,16 +62,18 @@ def movement(frame, drone, angle):
                 print("Where is black line\n")
         
         else:
-            if (angle <= 45 or angle > 315) and up:
-                drone.send_rc_control(up_movement[0], up_movement[1], up_movement[2], up_movement[3])
-            elif angle > 135 and angle <= 225 and down:
-                drone.send_rc_control(down_movement[0], down_movement[1], down_movement[2], down_movement[3])
-            elif right:
+            if  right:
                 #turn right
                 angle = 90
+                Tello.move(drone, "right", 30)
             elif left:
                 #turn left
                 angle = 270
+                Tello.move(drone, "left", 30)
+            elif (angle <= 45 or angle > 315) and up:
+                drone.send_rc_control(up_movement[0], up_movement[1], up_movement[2], up_movement[3])
+            elif angle > 135 and angle <= 225 and down:
+                drone.send_rc_control(down_movement[0], down_movement[1], down_movement[2], down_movement[3])
             else:
                 print("At the end of line\n")
 
@@ -87,18 +89,20 @@ def movement(frame, drone, angle):
                 print("Where is black line\n")
         
         else:
-            if angle>45 and angle <= 135 and right:
+            if up:
+                #turn up
+                angle = 0
+                Tello.move(drone, "up", 30)
+            elif down:
+                #turn down
+                angle = 180
+                Tello.move(drone, "down", 30)
+            elif angle>45 and angle <= 135 and right:
                 #move right
                 drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
             elif angle > 225 and angle <= 315 and left: 
                 #move left
                 drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
-            elif up:
-                #turn up
-                angle = 0
-            elif down:
-                #turn down
-                angle = 180
             else:
                 print("At the end of line\n")
         
@@ -168,7 +172,7 @@ def main():
                 for i in range(rvecs.shape[0]):
                     if markerIDs[i][0] == 2:
                         x, y, z = tvecs[0][0]
-                        z_update = tvecs[i, 0, 2] - 60
+                        z_update = tvecs[i, 0, 2] - 50
                         y_update = -tvecs[i, 0, 1]
                         x_update = tvecs[i, 0, 0]
                         rotM = np.zeros((3,3))
@@ -199,10 +203,10 @@ def main():
                             yaw_update = -MAX_SPEED
 
                         print("xyz: ", x, y, z)
-                        if(abs(x)<=10 and abs(y)<=10 and abs(z-60)<=5): 
+                        if(abs(x)<=10 and abs(y)<=10 and abs(z-65)<=5): 
                             drone.send_rc_control(0, 0, 0, 0)
                             time.sleep(1)
-                            Tello.move(drone, "right", 20)
+                            Tello.move(drone, "right", 30)
                             break_flag = True
                             print("Break!")
             else:
