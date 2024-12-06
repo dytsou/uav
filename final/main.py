@@ -6,7 +6,7 @@ from djitellopy import Tello
 from pyimagesearch.pid import PID
 from keyboard_djitellopy import keyboard
 from face_detection import face_detection
-from final.detectDoll import detectDoll
+from detectDoll import detectDoll
 
 def level1(drone, frame_read):
     # 起飛，看人臉往上往前往下，看人臉往下往前往上
