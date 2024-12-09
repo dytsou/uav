@@ -13,7 +13,11 @@ def face_detection(img, height, focal_length):
     for x, y, w, h in rects:
         distance = (height * focal_length) / h
         print(f"Face Estimated distance: {distance:.2f} cm")
+<<<<<<< HEAD
         if w*h > mw*mh: 
+=======
+        if(w > mw) and (h > mh): 
+>>>>>>> 01add34eae07636565133d79c22f6b626bc11545
             mx = x
             my = y
             mw = w
