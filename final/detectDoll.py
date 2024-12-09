@@ -45,5 +45,5 @@ def detectDoll(image):
             elif(names[int(cls)] == "Melody"):
                 label = 2
                 mconf = conf
-        plot_one_box(xyxy, image_orig, label=label, color=colors[int(cls)], line_thickness=1)
+        # plot_one_box(xyxy, image_orig, label=label, color=colors[int(cls)], line_thickness=1)
     return label
