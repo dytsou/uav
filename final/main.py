@@ -11,6 +11,8 @@ from detectDoll import detectDoll
 MAX_SPEED = 60
 cell_width = 5
 
+LEVEL = 0
+
 up_movement = [0, 0, 15, 0]
 left_movement = [-7, 0, 0, 0]
 right_movement = [7, 0, 0, 0]
@@ -20,7 +22,7 @@ down_movement = [0, 0, -15, 0]
 def movement9(frame, drone, angle, cnt):
     # [0] [1] [2]
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    _, frame = cv2.threshold(frame, 35, 255, cv2.THRESH_BINARY)
+    _, frame = cv2.threshold(frame, 30, 255, cv2.THRESH_BINARY)
     kernel = np.ones((2,2), np.uint8)
     frame = cv2.erode(frame, kernel, iterations=15)
 
@@ -113,7 +115,7 @@ def movement9(frame, drone, angle, cnt):
 def movement10(frame, drone, angle, cnt):
     # [0] [1] [2]
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    _, frame = cv2.threshold(frame, 35, 255, cv2.THRESH_BINARY)
+    _, frame = cv2.threshold(frame, 30, 255, cv2.THRESH_BINARY)
     kernel = np.ones((2,2), np.uint8)
     frame = cv2.erode(frame, kernel, iterations=15)
 
@@ -223,20 +225,23 @@ def level1(drone, frame_read):
         mx = frame.shape[0]/2
         my = frame.shape[1]/2
         print(mx, my)
-            
-        if (state == 0 or state == 2):
+        
+        key = cv2.waitKey(100)
+        if key != -1:
+            keyboard(drone, key)
+        elif (state == 0 or state == 2):
             if dis<0:
                 tmp = 0
-            elif (cx > mx+50): 
-                Tello.move(drone, "right", 20)
-            elif (cx < mx-50): 
-                Tello.move(drone, "left", 20)
-            elif (cy > my+30): 
-                Tello.move(drone, "up", 20)
-            elif (cy < my-30): 
-                Tello.move(drone, "down", 20)
+            elif (cx > mx+100): 
+                drone.send_rc_control(10, 0, 0, 0)
+            elif (cx < mx-100): 
+                drone.send_rc_control(-10, 0, 0, 0)
+            # elif (cy > my+100): 
+            #     drone.send_rc_control(0, 0, 20, 0)
+            # elif (cy < my-100): 
+                # drone.send_rc_control(0, 0, -20, 0)
             elif(dis > 100): 
-                Tello.move(drone, "forward", 20)
+                drone.send_rc_control(0, 10, 0, 0)
             else: state += 1
         elif (state == 1):
             Tello.move(drone, "up", 80)
@@ -244,14 +249,11 @@ def level1(drone, frame_read):
             Tello.move(drone, "down", 160)
             state += 1
         elif (state == 3):
-            Tello.move(drone, "down", 100)
+            Tello.move(drone, "down", 40)
             Tello.move(drone, "forward", 100)
-            Tello.move(drone, "up", 150)
+            Tello.move(drone, "up", 120)
             break
         
-        key = cv2.waitKey(100)
-        if key != -1:
-            keyboard(drone, key)
         cv2.imshow("drone", frame)
     print("fin")
 
@@ -264,7 +266,10 @@ def level2(drone, frame_read):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         doll = detectDoll(frame) #1 Carno, 2 Melody, 0 no detect
         if(doll != 0):
-            return doll; 
+            return doll
+        key = cv2.waitKey(100)
+        if key!=-1:
+            keyboard(drone, key)
     return 0
 
 def trace_prior_up(drone, frame_read, break_cond, init_angle):
@@ -274,7 +279,7 @@ def trace_prior_up(drone, frame_read, break_cond, init_angle):
     while(1):
         frame = frame_read.frame
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        key = cv2.waitKey(33)
+        key = cv2.waitKey(100)
         if key != -1:
             keyboard(drone, key)
         else:
@@ -291,7 +296,7 @@ def trace_prior_left(drone, frame_read, break_cond, init_angle):
     while(1):
         frame = frame_read.frame
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        key = cv2.waitKey(33)
+        key = cv2.waitKey(100)
         if key != -1:
             keyboard(drone, key)
         else:
@@ -478,9 +483,10 @@ def trace(drone, frame_read, prior):
     
 def level3(drone, frame_read, leftOrRight):
     # 寫死往左前方或右前方後降落
-    if(leftOrRight == 1): Tello.move(drone, "left", 50)
-    if(leftOrRight == 2): Tello.move(drone, "right", 50)
-    Tello.move(drone, "forward", 180)
+    if(leftOrRight == 1): Tello.move(drone, "left", 65)
+    if(leftOrRight == 2): Tello.move(drone, "right", 65)
+    # Tello.move(drone, "down", 100)
+    Tello.move(drone, "forward", 300)
 
 
 def main():
@@ -495,20 +501,27 @@ def main():
     while 1:
         frame = frame_read.frame
         cv2.imshow("frame", frame)
-        key = cv2.waitKey(33)
+        key = cv2.waitKey(100)
         if key  == ord("p"):
             break
         elif key!=-1:
             keyboard(drone, key)
-    print("level1 start")
-    # level1(drone, frame_read) # 起飛，看人臉往上往前往下，看人臉往下往前往上
-    print("level1 fin")
+    level1(drone, frame_read) # 起飛，看人臉往上往前往下，看人臉往下往前往上
     prior = level2(drone, frame_read) # 識別娃娃，回傳決定追線二不同階段
     print(prior)
     trace(drone, frame_read, prior) # 往上，追線優先往上/左，追線往下鑽過table，追線優先往左/上，往左走看到marker，轉180 結束
-    # leftOrRight = level2(drone, frame_read) # 識別娃娃，回傳決定追線二不同階段
-    # level3(drone, frame_read, leftOrRight) # 寫死往左前方或右前方後降落
-
+    leftOrRight = level2(drone, frame_read) # 識別娃娃，回傳決定追線二不同階段
+    level3(drone, frame_read, leftOrRight) # 寫死往左前方或右前方後降落
+    while 1:
+        frame = frame_read.frame
+        cv2.waitKey(100)
+        if(key != -1):
+            keyboard(drone, key)
+            # if(key == ord("m")):
+            #     LEVEL += 1
+            # if(key == ord("n")):
+            #     LEVEL -= 1
+        cv2.imshow("frame", frame)
 if __name__ == '__main__':
     main()
 

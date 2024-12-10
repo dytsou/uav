@@ -36,6 +36,7 @@ def detectDoll(image):
     output[:, :4] = scale_coords(image.shape[2:], output[:, :4], image_orig.shape).round()
     mconf = 0
     mlabel = 0
+    label = 0
     for *xyxy, conf, cls in output:
         label = f'{names[int(cls)]} {conf:.2f}'
         if(conf > mconf):
