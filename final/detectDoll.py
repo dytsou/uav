@@ -40,7 +40,7 @@ def detectDoll(image):
     for *xyxy, conf, cls in output:
         label = f'{names[int(cls)]} {conf:.2f}'
         if(conf > mconf):
-            if(names[int(cls)] == "Carno"):
+            if(names[int(cls)] == "Carna" or names[int(cls)] == "Carno"):
                 label = 1
                 mconf = conf
             elif(names[int(cls)] == "Melody"):

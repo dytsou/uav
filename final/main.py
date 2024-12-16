@@ -13,10 +13,10 @@ cell_width = 5
 
 LEVEL = 0
 
-up_movement = [0, 0, 15, 0]
-left_movement = [-7, 0, 0, 0]
-right_movement = [7, 0, 0, 0]
-down_movement = [0, 0, -15, 0]
+up_movement = [0, 0, 20, 0]
+left_movement = [-10, 0, 0, 0]
+right_movement = [10, 0, 0, 0]
+down_movement = [0, 0, -20, 0]
 
 
 def movement9(frame, drone, angle, cnt):
@@ -45,7 +45,7 @@ def movement9(frame, drone, angle, cnt):
     
     blocksize = (frame.shape[1]//3 * frame.shape[0]//3)
     # tmp = blocksize * 0.7
-    tmp = 65000
+    tmp = 63000
     up = up_frame < tmp
     left = left_frame < tmp 
     mid = mid_frame < tmp
@@ -57,12 +57,13 @@ def movement9(frame, drone, angle, cnt):
 
     if (angle <= 45 or angle > 315) or (angle > 135 and angle <= 225):
         if not mid:
-            if right:
-                #move right
-                drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
-            elif left:
+            if left:
                 #move left
                 drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
+            elif right:
+                #move right
+                # print('right')
+                drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
             else:
                 print("Where is black line\n")        
         else:
@@ -83,7 +84,9 @@ def movement9(frame, drone, angle, cnt):
 
     else:
         if not mid:
-            if up:
+            if left and right:
+                drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
+            elif up:
                 #move up
                 drone.send_rc_control(up_movement[0], up_movement[1], up_movement[2], up_movement[3])
             elif down:
@@ -93,11 +96,13 @@ def movement9(frame, drone, angle, cnt):
                 print("Where is black line\n")
         
         else:
-            if angle>45 and angle <= 135 and right:
-                #move right
-                drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
-            elif angle > 225 and angle <= 315 and left: 
+            if angle > 225 and angle <= 315 and left: 
                 #move left
+                drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
+            elif angle>45 and angle <= 135 and right:
+                #move right
+                # print('right')
+                # drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
                 drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
             elif up:
                 #turn up
@@ -138,7 +143,7 @@ def movement10(frame, drone, angle, cnt):
     
     blocksize = (frame.shape[1]//3 * frame.shape[0]//3)
     # tmp = blocksize * 0.7
-    tmp = 65000
+    tmp = 63000
     up = up_frame < tmp
     left = left_frame < tmp 
     mid = mid_frame < tmp
@@ -150,18 +155,19 @@ def movement10(frame, drone, angle, cnt):
 
     if (angle <= 45 or angle > 315) or (angle > 135 and angle <= 225):
         if not mid:
-            if right:
-                #move right
-                drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
-            elif left:
+            if left:
                 #move left
                 drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
+            elif right:
+                #move right
+                # print('right')
+                drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
             else:
                 print("Where is black line\n")        
         else:
             if right:
                 #turn right
-                angle = 90
+                # angle = 90
                 cnt += 1
             elif left:
                 #turn left
@@ -176,7 +182,9 @@ def movement10(frame, drone, angle, cnt):
 
     else:
         if not mid:
-            if up:
+            if left and right:
+                drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
+            elif up:
                 #move up
                 drone.send_rc_control(up_movement[0], up_movement[1], up_movement[2], up_movement[3])
             elif down:
@@ -194,11 +202,13 @@ def movement10(frame, drone, angle, cnt):
                 #turn down
                 angle = 180
                 cnt += 1
-            elif angle>45 and angle <= 135 and right:
-                #move right
-                drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
             elif angle > 225 and angle <= 315 and left: 
                 #move left
+                drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
+            elif angle>45 and angle <= 135 and right:
+                #move right
+                # print('right')
+                # drone.send_rc_control(right_movement[0], right_movement[1], right_movement[2], right_movement[3])
                 drone.send_rc_control(left_movement[0], left_movement[1], left_movement[2], left_movement[3])
             else:
                 print("At the end of line\n")
@@ -240,18 +250,23 @@ def level1(drone, frame_read):
             #     drone.send_rc_control(0, 0, 20, 0)
             # elif (cy < my-100): 
                 # drone.send_rc_control(0, 0, -20, 0)
-            elif(dis > 100): 
-                drone.send_rc_control(0, 10, 0, 0)
+            elif(dis > 120): 
+                drone.send_rc_control(0, 15, 0, 0)
             else: state += 1
         elif (state == 1):
             Tello.move(drone, "up", 80)
-            Tello.move(drone, "forward", 100)
+            time.sleep(0.3)
+            Tello.move(drone, "forward", 120)
+            time.sleep(0.3)
             Tello.move(drone, "down", 160)
+            time.sleep(0.3)
             state += 1
         elif (state == 3):
-            Tello.move(drone, "down", 40)
-            Tello.move(drone, "forward", 100)
-            Tello.move(drone, "up", 120)
+            Tello.move(drone, "down", 60)
+            time.sleep(0.3)
+            Tello.move(drone, "forward", 150)
+            time.sleep(0.3)
+            Tello.move(drone, "up", 100)
             break
         
         cv2.imshow("drone", frame)
@@ -272,43 +287,36 @@ def level2(drone, frame_read):
             keyboard(drone, key)
     return 0
 
-def trace_prior_up(drone, frame_read, break_cond, init_angle):
-    # 優先往上飛(轉彎)，追線，cnt >= break_cond時break
+def trace_with_prior(drone, frame_read, prior):
+    start_time = time.time()
+    angle = 0
     cnt = 0
-    angle = init_angle
+    running_prior = prior
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+    parameters = cv2.aruco.DetectorParameters()
     while(1):
         frame = frame_read.frame
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        markerCorners, markerIDs, rejectedCandidates = cv2.aruco.detectMarkers(frame, dictionary, parameters=parameters)
         key = cv2.waitKey(100)
         if key != -1:
             keyboard(drone, key)
         else:
-            frame, drone, angle, cnt = movement10(frame, drone, angle, cnt)   
-        
+            frame, drone, angle, cnt = movement10(frame, drone, angle, cnt) if(running_prior == 2) else movement9(frame,drone, angle, cnt) 
+            time.sleep(0.15)
+
         cv2.imshow("drone", frame)
-        if cnt >= break_cond:
-            break
-    
-def trace_prior_left(drone, frame_read, break_cond, init_angle):
-    # 優先往左飛(直走)，追線，cnt >= break_cond時break
-    cnt = 0
-    angle = init_angle
-    while(1):
-        frame = frame_read.frame
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        key = cv2.waitKey(100)
-        if key != -1:
-            keyboard(drone, key)
-        else:
-            frame, drone, angle, cnt = movement9(frame, drone, angle, cnt)   
-        
-        cv2.imshow("drone", frame)
-        if cnt >= break_cond:
-            break
-    
-def trace_until_aruco(drone, frame_read):
-    drone.send_rc_control(-7, 0, 0, 0)
-    state = 0
+        if(running_prior==prior and time.time()-start_time>60): 
+            running_prior = 1 if prior == 2 else 2
+            print("prior change!!!!!!!!!")
+
+        fs = cv2.FileStorage("drone.xml", cv2.FILE_STORAGE_READ)
+        intrinsic = fs.getNode("instrinsic").mat()
+        distorsion = fs.getNode("distortion").mat()
+        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intrinsic, distorsion)
+        if(rvecs is not None and tvecs is not None and markerIDs[0][0] == 2): break
+
+def trace_aruco(drone, frame_read):
     z_pid = PID(kP=0.7, kI=0.0001, kD=0.1)
     y_pid = PID(kP=0.7, kI=0.0001, kD=0.1)
     x_pid = PID(kP=0.6, kI=0.0002, kD=0.1)
@@ -337,10 +345,10 @@ def trace_until_aruco(drone, frame_read):
         distorsion = fs.getNode("distortion").mat()
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorners, 15, intrinsic, distorsion)
         # print(rvecs, tvecs)
+        break_flag = False
         if rvecs is not None and tvecs is not None:
             for i in range(rvecs.shape[0]):
                 if markerIDs[i][0] == 2:
-                    state = 1
                     x, y, z = tvecs[0][0]
                     z_update = tvecs[i, 0, 2] - 40
                     y_update = -tvecs[i, 0, 1]
@@ -371,17 +379,23 @@ def trace_until_aruco(drone, frame_read):
                         yaw_update = MAX_SPEED
                     elif yaw_update < -MAX_SPEED:
                         yaw_update = -MAX_SPEED
+                    if(abs(x)<=10 and abs(y)<=10 and abs(z-65)<=5): 
+                        drone.send_rc_control(0, 0, 0, 0)
+                        time.sleep(1)
+                        break_flag = True
+                        print("Break!")
         else:
             z_update = 0
             y_update = 0
             x_update = 0
             yaw_update = 0 
         cv2.imshow("drone", frame)
+        if(break_flag): break
         key = cv2.waitKey(100)
         if key != -1:
             keyboard(drone, key)
         else:
-            if(state == 1): drone.send_rc_control(int(x_update) // 1, int(z_update) // 2, int(y_update) // 1, int(yaw_update) * (-1))
+            drone.send_rc_control(int(x_update) // 1, int(z_update) // 2, int(y_update) // 1, int(yaw_update) * (-1))
     Tello.rotate_clockwise(drone, 180)
 
 def trace(drone, frame_read, prior):
@@ -419,9 +433,9 @@ def trace(drone, frame_read, prior):
             for i in range(rvecs.shape[0]):
                 if markerIDs[i][0] == 1:
                     x, y, z = tvecs[0][0]
-                    z_update = tvecs[i, 0, 2] - 50
+                    z_update = tvecs[i, 0, 2] - 40
                     y_update = -tvecs[i, 0, 1]
-                    x_update = tvecs[i, 0, 0]
+                    x_update = tvecs[i, 0, 0]+5
                     rotM = np.zeros((3,3))
                     cv2.Rodrigues(rvecs[i], rotM)
                     z_prime = np.matmul(rotM, np.array([0,0,1]))
@@ -452,8 +466,8 @@ def trace(drone, frame_read, prior):
                     print("xyz: ", x, y, z)
                     if(abs(x)<=10 and abs(y)<=10 and abs(z-65)<=5): 
                         drone.send_rc_control(0, 0, 0, 0)
-                        time.sleep(1)
                         Tello.move(drone, "up", 20)
+                        time.sleep(1)
                         break_flag = True
                         print("Break!")
         else:
@@ -469,17 +483,11 @@ def trace(drone, frame_read, prior):
             drone.send_rc_control(int(x_update) // 1, int(z_update)*2 // 5, int(y_update) // 1, 0)
         cv2.imshow("drone", frame)
     
-    if(prior == 1):
-        trace_prior_up(drone, frame_read, 5, 0)
-        trace_prior_left(drone, frame_read, 4, 270)
-        trace_until_aruco(drone, frame_read)
-    elif(prior == 2):
-        trace_prior_left(drone, frame_read, 2, 0)
-        trace_prior_up(drone, frame_read, 7, 180)
-        trace_until_aruco(drone, frame_read)
-    else:
-        print("unknown prior")
-    
+    trace_with_prior(drone, frame_read, prior)
+    print("fin")
+    Tello.move(drone, "back", 20)
+    time.sleep(1)
+    trace_aruco(drone, frame_read)
     
 def level3(drone, frame_read, leftOrRight):
     # 寫死往左前方或右前方後降落
@@ -487,6 +495,7 @@ def level3(drone, frame_read, leftOrRight):
     if(leftOrRight == 2): Tello.move(drone, "right", 65)
     # Tello.move(drone, "down", 100)
     Tello.move(drone, "forward", 300)
+    drone.land()
 
 
 def main():
@@ -509,19 +518,22 @@ def main():
     level1(drone, frame_read) # 起飛，看人臉往上往前往下，看人臉往下往前往上
     prior = level2(drone, frame_read) # 識別娃娃，回傳決定追線二不同階段
     print(prior)
+    time.sleep(1)
     trace(drone, frame_read, prior) # 往上，追線優先往上/左，追線往下鑽過table，追線優先往左/上，往左走看到marker，轉180 結束
+    Tello.move(drone, "back", 20)
+    time.sleep(1)
     leftOrRight = level2(drone, frame_read) # 識別娃娃，回傳決定追線二不同階段
     level3(drone, frame_read, leftOrRight) # 寫死往左前方或右前方後降落
-    while 1:
-        frame = frame_read.frame
-        cv2.waitKey(100)
-        if(key != -1):
-            keyboard(drone, key)
-            # if(key == ord("m")):
-            #     LEVEL += 1
-            # if(key == ord("n")):
-            #     LEVEL -= 1
-        cv2.imshow("frame", frame)
+    # while 1:
+    #     frame = frame_read.frame
+    #     cv2.waitKey(100)
+    #     if(key != -1):
+    #         keyboard(drone, key)
+    #         # if(key == ord("m")):
+    #         #     LEVEL += 1
+    #         # if(key == ord("n")):
+    #         #     LEVEL -= 1
+    #     cv2.imshow("frame", frame)
 if __name__ == '__main__':
     main()
 
